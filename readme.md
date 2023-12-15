@@ -40,7 +40,7 @@ This paper introduces the Dynamic Grouping Aggregation Graph neural network (DGA
 - run <code> python train.py --config-name yelpchit</code>  for YelpChi dataset   
 - run <code> python train.py --config-name amazont</code>  for Amazon dataset    
 
-If you are familiar with wandb, you can set nowandb==False in the config.
+If you are familiar with wandb, you can set nowandb=False in the config.
 
 ###  **Mainly Dependencies:**
 - torch==1.13.1   
