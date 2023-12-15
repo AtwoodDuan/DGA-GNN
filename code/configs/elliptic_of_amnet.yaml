@@ -1,0 +1,29 @@
+dname: elliptic_of_amnet
+project: dga_reproduction
+model: dga
+bs: 64
+n_hidden: 128
+k: 4
+z: 0.1
+n_head: 2
+lr: 1e-3
+weight_decay: 5e-4
+p: 0.3
+patience: 25
+
+bin_encoding: True
+stat: 'wo'
+stat_edge: 0
+max_epochs: 10000
+fanouts: [-1]
+seed: 321
+usegpu: True
+gpuid: 0
+nowandb: True
+col_index: None
+unclear_ratio: 0
+BCD: False
+grouping: 'hard'
+
+
+
