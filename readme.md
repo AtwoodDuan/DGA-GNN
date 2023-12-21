@@ -53,4 +53,4 @@ If you are familiar with wandb, you can set nowandb=False in the config.
 - wandb==0.13.10  
 - hydra-core==1.3.2
 
-![Star History Chart](https://api.star-history.com/svg?repos=AtwoodDuan/DGA-GNN&type=Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=AtwoodDuan/DGA-GNN&type=Date)](https://star-history.com/#AtwoodDuan/DGA-GNN&Date)
