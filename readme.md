@@ -51,5 +51,7 @@ If you are familiar with wandb, you can set nowandb=False in the config.
 - scikit-learn==1.0.2  
 - pytorch-lightning==1.9.4  
 - wandb==0.13.10  
-- hydra-core==1.3.2 
+- hydra-core==1.3.2
+
+<iframe style="width:100%;height:auto;min-width:600px;min-height:400px;" src="https://star-history.com/embed?secret=Z2hwX09vTlJXQXNTQk5sY0wzS3RkOVNqVUlFcmxQSmhWbDFQelZmWA==#AtwoodDuan/DGA-GNN&Date" frameBorder="0"></iframe>
  
