@@ -3,11 +3,7 @@
 ###  Abstract
 
 Fraud detection has increasingly become a prominent research field due to the dramatically increased incidents of fraud. The complex connections involving thousands, or even millions of nodes, present challenges for fraud detection tasks. Many researchers have developed various graph-based methods to detect fraud from these intricate graphs. However, those methods neglect two distinct characteristics of the fraud graph: the non-additivity of certain attributes and the distinguishability of grouped messages from neighbor nodes.
-<<<<<<< HEAD
 This paper introduces the Dynamic Grouping Aggregation Graph neural network (DGA-GNN) for fraud detection, which addresses these two characteristics by dynamically grouping attribute value ranges and neighbor nodes. In DGA-GNN, we initially propose the decision tree binning encoding to transform non-additive node attributes into bin vectors. This approach aligns well with the GNN’s aggregation operation and avoids nonsensical feature generation. Furthermore, we devise a feedback dynamic grouping strategy to classify graph nodes into two distinct groups and then employ a hierarchical aggregation. This method extracts more discriminative features for fraud detection tasks. Extensive experiments on five datasets suggest that our proposed method achieves a 3%~16% improvement over existing SOTA methods.
-=======
-This paper introduces the Dynamic Grouping Aggregation Graph Neural Network (DGA-GNN) for fraud detection, which addresses these two characteristics by dynamically grouping attribute value ranges and neighbor nodes. In DGA-GNN, we initially propose the decision tree binning encoding to transform non-additive node attributes into bin vectors. This approach aligns well with the GNN’s aggregation operation and avoids nonsensical feature generation. Furthermore, we devise a feedback dynamic grouping strategy to classify graph nodes into two distinct groups and then employ a hierarchical aggregation. This method extracts more discriminative features for fraud detection tasks. Extensive experiments on five datasets suggest that our proposed method achieves a 3%~16% improvement over existing SOTA methods.
->>>>>>> origin/main
 
 
 ## **Framework**
@@ -44,11 +40,8 @@ This paper introduces the Dynamic Grouping Aggregation Graph Neural Network (DGA
 - run <code> python train.py --config-name yelpchit</code>  for YelpChi dataset   
 - run <code> python train.py --config-name amazont</code>  for Amazon dataset    
 
-<<<<<<< HEAD
-If you are familiar with wandb, you can set nowandb==False in the config.
-=======
+
 If you are familiar with wandb, you can set nowandb=False in the config.
->>>>>>> origin/main
 
 ###  **Mainly Dependencies:**
 - torch==1.13.1   
@@ -59,11 +52,8 @@ If you are familiar with wandb, you can set nowandb=False in the config.
 - scikit-learn==1.0.2  
 - pytorch-lightning==1.9.4  
 - wandb==0.13.10  
-<<<<<<< HEAD
 - hydra-core==1.3.2 
  
-=======
-- hydra-core==1.3.2
+
 
 [![Star History Chart](https://api.star-history.com/svg?repos=AtwoodDuan/DGA-GNN&type=Date)](https://star-history.com/#AtwoodDuan/DGA-GNN&Date)
->>>>>>> origin/main

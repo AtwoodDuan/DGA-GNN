@@ -130,8 +130,7 @@ graph.ndata['label'] = torch.LongTensor(y)
 graph.ndata['trn_msk'] = trn_msk
 graph.ndata['val_msk'] = val_msk
 graph.ndata['tst_msk'] = tst_msk
-<<<<<<< HEAD
-describe(graph)
+
 split_dict = dict()
 split_dict['trn_msk'] = trn_msk
 split_dict['val_msk'] = val_msk
@@ -142,12 +141,6 @@ split_dict['tst_idx'] = torch.LongTensor(tst_idx)
 
 # 保存图数据
 save_graphs(DATA_PATH + 'tfinance.dgldata', graph,split_dict)
-=======
-
-# 保存图数据
-save_graphs(DATA_PATH + 'tfinance.dgldata', graph, label_dict)
-
->>>>>>> origin/main
 describe(graph)
 
 # ====================================================================
@@ -191,8 +184,7 @@ graph.ndata['trn_msk'] = trn_msk
 graph.ndata['val_msk'] = val_msk
 graph.ndata['tst_msk'] = tst_msk
 
-<<<<<<< HEAD
-describe(graph)
+
 split_dict = dict()
 split_dict['trn_msk'] = trn_msk
 split_dict['val_msk'] = val_msk
@@ -207,13 +199,6 @@ describe(graph)
 
 
 
-=======
-# 保存图数据
-save_graphs(DATA_PATH + 'tsocial.dgldata', graph)
-
-describe(graph)
-
->>>>>>> origin/main
 # ====================================================================
 # ====================================================================
 # elliptic_of_amnet
@@ -238,8 +223,7 @@ graph.ndata['label'] = data.y
 graph.ndata['trn_msk'] = data.train_mask
 graph.ndata['val_msk'] = data.val_mask
 graph.ndata['tst_msk'] = data.test_mask
-<<<<<<< HEAD
-describe(graph)
+
 split_dict = dict()
 split_dict['trn_msk'] = trn_msk
 split_dict['val_msk'] = val_msk
@@ -252,15 +236,6 @@ split_dict['tst_idx'] = torch.LongTensor(tst_idx)
 save_graphs(DATA_PATH + 'elliptic_of_amnet.dgldata', graph,split_dict)
 describe(graph)
 
-=======
-
-# 保存图数据
-save_graphs(DATA_PATH + 'elliptic_of_amnet.dgldata', graph)
-
-describe(graph)
-
-
->>>>>>> origin/main
 # ====================================================================
 # ====================================================================
 # yelpchi
@@ -359,7 +334,7 @@ graph.ndata['label'] = torch.LongTensor(y)
 graph.ndata['trn_msk'] = trn_msk
 graph.ndata['val_msk'] = val_msk
 graph.ndata['tst_msk'] = tst_msk
-<<<<<<< HEAD
+
 split_dict = dict()
 split_dict['trn_msk'] = trn_msk
 split_dict['val_msk'] = val_msk
@@ -367,13 +342,10 @@ split_dict['tst_msk'] = tst_msk
 split_dict['trn_idx'] = torch.LongTensor(trn_idx)
 split_dict['val_idx'] = torch.LongTensor(val_idx)
 split_dict['tst_idx'] = torch.LongTensor(tst_idx)
-# 保存图数据
-save_graphs(DATA_PATH + 'yelpchi_homo.dgldata', graph, split_dict)
-=======
+
 
 # 保存图数据
 save_graphs(DATA_PATH + 'yelpchi_homo.dgldata', graph)
->>>>>>> origin/main
 describe(graph)
 
 
@@ -477,7 +449,6 @@ graph.ndata['trn_msk'] = trn_msk
 graph.ndata['val_msk'] = val_msk
 graph.ndata['tst_msk'] = tst_msk
 
-<<<<<<< HEAD
 split_dict = dict()
 split_dict['trn_msk'] = trn_msk
 split_dict['val_msk'] = val_msk
@@ -487,11 +458,7 @@ split_dict['val_idx'] = torch.LongTensor(val_idx)
 split_dict['tst_idx'] = torch.LongTensor(tst_idx)
 
 # 保存图数据
-save_graphs(DATA_PATH + 'amazon_homo.dgldata', graph,split_dict)
-=======
-# 保存图数据
 save_graphs(DATA_PATH + 'amazon_homo.dgldata', graph)
->>>>>>> origin/main
 describe(graph)
 
 
