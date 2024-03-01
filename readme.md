@@ -1,6 +1,14 @@
 # DGA-GNN: Dynamic Grouping Aggregation GNN for Fraud Detection
 
-###  Abstract
+This is the official implementation of the following paper:
+
+> [DGA-GNN: Dynamic Grouping Aggregation GNN for Fraud Detection](https://arxiv.org/abs/2306.12251)
+>
+> Mingjiang Duan, Tongya Zheng, Yang Gao, Gang Wang, Zunlei Feng, Xinyu Wang
+>
+> AAAI 2024 Main Track
+
+##  Abstract
 
 Fraud detection has increasingly become a prominent research field due to the dramatically increased incidents of fraud. The complex connections involving thousands, or even millions of nodes, present challenges for fraud detection tasks. Many researchers have developed various graph-based methods to detect fraud from these intricate graphs. However, those methods neglect two distinct characteristics of the fraud graph: the non-additivity of certain attributes and the distinguishability of grouped messages from neighbor nodes.
 This paper introduces the Dynamic Grouping Aggregation Graph neural network (DGA-GNN) for fraud detection, which addresses these two characteristics by dynamically grouping attribute value ranges and neighbor nodes. In DGA-GNN, we initially propose the decision tree binning encoding to transform non-additive node attributes into bin vectors. This approach aligns well with the GNN’s aggregation operation and avoids nonsensical feature generation. Furthermore, we devise a feedback dynamic grouping strategy to classify graph nodes into two distinct groups and then employ a hierarchical aggregation. This method extracts more discriminative features for fraud detection tasks. Extensive experiments on five datasets suggest that our proposed method achieves a 3%~16% improvement over existing SOTA methods.
@@ -54,6 +62,17 @@ If you are familiar with wandb, you can set nowandb=False in the config.
 - wandb==0.13.10  
 - hydra-core==1.3.2 
  
+## Citation
 
+If you use this package and find it useful, please cite our paper using the following BibTeX. Thanks! :)
+
+```
+@inproceedings{duan2024dgagnn,
+  title={DGA-GNN: Dynamic Grouping Aggregation GNN for Fraud Detection},
+  author={Duan, Mingjiang and Zheng, Tongya and Gao, Yang and Feng, Zunlei and Wang, Xinyu},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  year={2024}
+}
+```
 
 [![Star History Chart](https://api.star-history.com/svg?repos=AtwoodDuan/DGA-GNN&type=Date)](https://star-history.com/#AtwoodDuan/DGA-GNN&Date)
