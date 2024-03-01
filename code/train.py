@@ -1,33 +1,30 @@
 # 内置
-import argparse
 import os
 import warnings
 # dgl
 import dgl
-import dgl.nn.pytorch as dglnn
-from dgl.data.utils import load_graphs
-from dgl.utils import expand_as_pair, check_eq_shape, dgl_warning
-from dgl import function as fn
+import hydra
+# 机器学习
+import numpy as np
 # torch
 import torch
 import torch.nn.functional as F
-from torch.utils.data import Dataset,DataLoader
+# 工程化、自建和其他
+import wandb
+from dgl import function as fn
+from dgl.data.utils import load_graphs
+from dgl.utils import expand_as_pair, dgl_warning
+from omegaconf import DictConfig, OmegaConf
 # pl
 from pytorch_lightning import (LightningDataModule, LightningModule, Trainer)
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Timer
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.loggers.wandb import WandbLogger # Fixed import statement
-# 机器学习
-import numpy as np
-import pandas as pd
-from sklearn.metrics import (roc_auc_score,average_precision_score)
+from pytorch_lightning.loggers.wandb import WandbLogger
+from sklearn.metrics import (roc_auc_score, average_precision_score)
 from torch import nn
 from tqdm import tqdm
-# 工程化、自建和其他
-import wandb
-import hydra
-from omegaconf import DictConfig, OmegaConf
-from myutils import describe, mask_to_index, set_all_seed, cal_metrics, bin_encoding2, get_aux_label
+
+from myutils import describe, mask_to_index, set_all_seed, cal_metrics, bin_encoding2
+
 warnings.filterwarnings("ignore")
 print(os.getcwd())
 
@@ -249,17 +246,18 @@ class IntraConv_multi(nn.Module):
 
 # 构建dataloader
 class DataModule(LightningDataModule):
-    def __init__(self, graph, fanouts, batch_size, n_classes):
+    def __init__(self, graph, batch_size, n_classes):
         super().__init__()
 
         trn_sampler = dgl.dataloading.NeighborSampler(
-            fanouts  # , prefetch_node_feats=["feat"], prefetch_labels=["label"]
+            [-1]  # , prefetch_node_feats=["feat"], prefetch_labels=["label"]
         )
         val_sampler = dgl.dataloading.NeighborSampler(
-            [-1]*len(fanouts)  # , prefetch_node_feats=["feat"], prefetch_labels=["label"]
+            [-1]  # , prefetch_node_feats=["feat"], prefetch_labels=["label"]
         )
         self.g = graph
-        self.trn_idx, self.val_idx, self.tst_idx = mask_to_index(graph.ndata['trn_msk']), mask_to_index(graph.ndata['val_msk']), mask_to_index(graph.ndata['tst_msk'])
+        self.trn_idx, self.val_idx, self.tst_idx = mask_to_index(graph.ndata['trn_msk']), mask_to_index(
+            graph.ndata['val_msk']), mask_to_index(graph.ndata['tst_msk'])
         self.trn_sampler = trn_sampler
         self.val_sampler = val_sampler
         self.batch_size = batch_size
@@ -275,7 +273,7 @@ class DataModule(LightningDataModule):
             shuffle=True,
             drop_last=False,
             use_uva=True,
-            num_workers = 0,
+            num_workers=0,
         )
         return loader
 
@@ -294,23 +292,15 @@ class DataModule(LightningDataModule):
         return loader
 
 
-def dynamic_grouping(mask, block, unclear_down, unclear_up):
-    mask0 = (mask[:, 1] <= unclear_down)[block.srcdata[dgl.NID][block.edges()[0]]].float()
-    mask1 = (mask[:, 1] > unclear_up)[block.srcdata[dgl.NID][block.edges()[0]]].float()
-    return mask0, mask1
-
-
 class DGA(nn.Module):
-    def __init__(self, in_feats, n_hidden, num_nodes, n_classes, n_etypes, stat, p=0.3, n_head=1,
-                 grouping='hard', unclear_up=0.1, unclear_down=0.1):
+    def __init__(self, in_feats, n_hidden, num_nodes, n_classes, n_etypes, p=0.3, n_head=1,
+                  unclear_up=0.1, unclear_down=0.1):
         """Initialize the SAGE model with the given parameters."""
         super().__init__()
         self.dropout = nn.Dropout(p)
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.n_etypes = n_etypes
-        self.stat = stat
-        self.grouping = grouping
         self.unclear_up = unclear_up
         self.unclear_down = unclear_down
         self.register_buffer('super_mask', torch.ones((num_nodes, self.n_classes)))
@@ -338,14 +328,14 @@ class DGA(nn.Module):
 
         # 输出层
         all_layers = []
-        all_layers.append(nn.Linear(self.n_head*n_hidden, n_hidden // 2))
+        all_layers.append(nn.Linear(self.n_head * n_hidden, n_hidden // 2))
         all_layers.append(nn.ReLU())
         all_layers.append(nn.Linear(n_hidden // 2, self.n_classes))
         self.final_fc_layer = nn.Sequential(*all_layers)
 
         self.attn_fn = nn.Tanh()
-        self.W_f = nn.Sequential(nn.Linear(n_hidden, n_hidden*self.n_head), self.attn_fn)
-        self.W_x = nn.Sequential(nn.Linear(n_hidden, n_hidden*self.n_head), self.attn_fn)
+        self.W_f = nn.Sequential(nn.Linear(n_hidden, n_hidden * self.n_head), self.attn_fn)
+        self.W_x = nn.Sequential(nn.Linear(n_hidden, n_hidden * self.n_head), self.attn_fn)
 
         self.reset_parameters()
         #
@@ -357,9 +347,12 @@ class DGA(nn.Module):
         dgas = []
         for r in range(self.n_etypes):
             m = nn.ModuleDict({
-                'all': intra_conv(self.last_dim, n_hidden, "mean", norm=nn.BatchNorm1d(n_hidden), activation=nn.ReLU(), bias=False),
-                'gp0': intra_conv(self.last_dim, n_hidden, "mean", norm=nn.BatchNorm1d(n_hidden), activation=nn.ReLU(), bias=False, add_self=False),
-                'gp1': intra_conv(self.last_dim, n_hidden, "mean", norm=nn.BatchNorm1d(n_hidden), activation=nn.ReLU(), bias=False, add_self=False)
+                'all': intra_conv(self.last_dim, n_hidden, "mean", norm=nn.BatchNorm1d(n_hidden), activation=nn.ReLU(),
+                                  bias=False),
+                'gp0': intra_conv(self.last_dim, n_hidden, "mean", norm=nn.BatchNorm1d(n_hidden), activation=nn.ReLU(),
+                                  bias=False, add_self=False),
+                'gp1': intra_conv(self.last_dim, n_hidden, "mean", norm=nn.BatchNorm1d(n_hidden), activation=nn.ReLU(),
+                                  bias=False, add_self=False)
             })
             dgas.append(m)
         self.dgas = nn.ModuleList(dgas)
@@ -370,6 +363,11 @@ class DGA(nn.Module):
             if isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight, gain=gain)
                 nn.init.constant_(m.bias, 0)
+
+    def dynamic_grouping(self, mask, block, unclear_down, unclear_up):
+        mask0 = (mask[:, 1] <= unclear_down)[block.srcdata[dgl.NID][block.edges()[0]]].float()
+        mask1 = (mask[:, 1] > unclear_up)[block.srcdata[dgl.NID][block.edges()[0]]].float()
+        return mask0, mask1
 
     def forward(self, blocks, x):
         """Forward pass of the SAGE model."""
@@ -383,7 +381,8 @@ class DGA(nn.Module):
 
         for etype in block.etypes:
             mask0_dict[etype], mask1_dict[etype] = \
-                dynamic_grouping(self.super_mask, block.edge_type_subgraph(etypes=[etype]), self.unclear_up, self.unclear_down)
+                self.dynamic_grouping(self.super_mask, block.edge_type_subgraph(etypes=[etype]),
+                                      self.unclear_up, self.unclear_down)
 
         h_list = []
         for idx, etype in enumerate(block.etypes):
@@ -412,8 +411,8 @@ class DGA(nn.Module):
 
 # 构建网络结构
 class pl_DGA(LightningModule):
-    def __init__(self, in_feats, n_hidden, num_nodes, n_classes, n_etypes, stat,
-                 lr=1e-3, weight_decay=5e-4, p=0.3, n_head=1, grouping='hard', w=None,
+    def __init__(self, in_feats, n_hidden, num_nodes, n_classes, n_etypes,
+                 lr=1e-3, weight_decay=5e-4, p=0.3, n_head=1, w=None,
                  unclear_up=0.1, unclear_down=0.1,
                  trn_idx=None, val_idx=None, tst_idx=None):
         super().__init__()
@@ -422,7 +421,7 @@ class pl_DGA(LightningModule):
         self.n_classes = n_classes
         self.lr = lr
         self.weight_decay = weight_decay
-        self.dga = DGA(in_feats[0], n_hidden, num_nodes, n_classes, n_etypes, stat, p, n_head, grouping, unclear_up, unclear_down)
+        self.dga = DGA(in_feats[0], n_hidden, num_nodes, n_classes, n_etypes,  p, n_head, unclear_up, unclear_down)
         self.trn_idx = trn_idx
         self.val_idx = val_idx
         self.tst_idx = tst_idx
@@ -435,14 +434,14 @@ class pl_DGA(LightningModule):
         o, emb_out = self.dga(blocks, x)
         return o, emb_out
 
-    def training_step(self, batch, batch_idx):#, optimizer_idx):
+    def training_step(self, batch, batch_idx):  # , optimizer_idx):
         input_nodes, output_nodes, blocks = batch
         x = blocks[0].srcdata["feat"]
         y = blocks[-1].dstdata["aux_label"]
         logits, emb_logits = self(blocks, x)
         loss = F.cross_entropy(logits, y, self.w)
-        #emb_loss = F.cross_entropy(emb_logits, y, self.w)
-        loss = loss# + 0.5*emb_loss
+        # emb_loss = F.cross_entropy(emb_logits, y, self.w)
+        loss = loss  # + 0.5*emb_loss
         self.log("trn_loss0", loss, prog_bar=True, on_step=False, on_epoch=True, batch_size=len(output_nodes))
         return loss
 
@@ -452,8 +451,8 @@ class pl_DGA(LightningModule):
         y = blocks[-1].dstdata["label"]
         logits, emb_logits = self(blocks, x)
         loss = F.cross_entropy(logits, y, self.w)
-        #emb_loss = F.cross_entropy(emb_logits, y, self.w)
-        loss = loss #+ 0.5*emb_loss
+        # emb_loss = F.cross_entropy(emb_logits, y, self.w)
+        loss = loss  # + 0.5*emb_loss
 
         self.log("val_loss", loss, prog_bar=True, on_step=False, on_epoch=True, batch_size=len(output_nodes))
         return logits, y
@@ -467,21 +466,22 @@ class pl_DGA(LightningModule):
             p = torch.cat([x[0] for x in outs]).softmax(-1).cpu().numpy()
             self.ps.append(p)
             prob = p[:, 1]
-            prob_ = self.ps[-2][:, 1] if len(self.ps) > 1 else 1-prob
+            prob_ = self.ps[-2][:, 1] if len(self.ps) > 1 else 1 - prob
             self.dga.super_mask.copy_(torch.FloatTensor(np.mean(self.ps[-10:], axis=0)))
 
             # if self.trainer.current_epoch > 50:
-            #self.super_mask[trn_idx, y[trn_idx]] = 1.0  # 训练集的部分硬标
-            #print((self.super_mask.argmax(-1)[trn_idx].cpu().numpy() == y[trn_idx]).mean())
+            # self.super_mask[trn_idx, y[trn_idx]] = 1.0  # 训练集的部分硬标
+            # print((self.super_mask.argmax(-1)[trn_idx].cpu().numpy() == y[trn_idx]).mean())
             trn_auc = roc_auc_score(y[self.trn_idx], prob[self.trn_idx])
             val_auc = roc_auc_score(y[self.val_idx], prob[self.val_idx])
             tst_auc = roc_auc_score(y[self.tst_idx], prob[self.tst_idx])
             trn_aps = average_precision_score(y[self.trn_idx], prob[self.trn_idx])
             val_aps = average_precision_score(y[self.val_idx], prob[self.val_idx])
             tst_aps = average_precision_score(y[self.tst_idx], prob[self.tst_idx])
-            self.log('g0', int(( prob <= self.unclear_down).sum()) / 100000, prog_bar=True, on_step=False, on_epoch=True)
-            self.log('g1', int(( prob > self.unclear_up).sum()) / 100000, prog_bar=True, on_step=False, on_epoch=True)
-            self.log('flip_r', ((prob_<=self.unclear_down)^(prob<=self.unclear_down)).sum()/len(prob), prog_bar=True, on_step=False, on_epoch=True)
+            self.log('g0', int((prob <= self.unclear_down).sum()) / 100000, prog_bar=True, on_step=False, on_epoch=True)
+            self.log('g1', int((prob > self.unclear_up).sum()) / 100000, prog_bar=True, on_step=False, on_epoch=True)
+            self.log('flip_r', ((prob_ <= self.unclear_down) ^ (prob <= self.unclear_down)).sum() / len(prob),
+                     prog_bar=True, on_step=False, on_epoch=True)
             self.log("pmean", prob.mean(), prog_bar=True, on_step=False, on_epoch=True)
             self.log("trn_auc", trn_auc, prog_bar=True, on_step=False, on_epoch=True)
             self.log("val_auc", val_auc, prog_bar=True, on_step=False, on_epoch=True)
@@ -494,7 +494,8 @@ class pl_DGA(LightningModule):
         """Configure the optimizer for the model."""
         optimizer = torch.optim.Adam(self.dga.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5,verbose=True)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5,
+                                                               verbose=True)
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
@@ -519,7 +520,7 @@ class pl_DGA(LightningModule):
             torch.arange(g.num_nodes()).to(g.device),
             sampler,
             device=device,
-            batch_size=batch_size*5,
+            batch_size=batch_size * 5,
             shuffle=False,
             drop_last=False,
             use_uva=True,
@@ -547,7 +548,7 @@ def run(args: DictConfig):
     device = torch.device(f'cuda:{args.gpuid}' if torch.cuda.is_available() and args.usegpu else 'cpu')
     accelerator = 'gpu' if torch.cuda.is_available() and args.usegpu else 'cpu'
     set_all_seed(args.seed)
-    args.model = f'{args.model}_{len(args.fanouts)}l_{args.fanouts}'
+    args.model = f'{args.model}'
     suffix = '_bin' if args.bin_encoding else ''
     args.model = args.model + suffix
 
@@ -560,30 +561,27 @@ def run(args: DictConfig):
     graph, split_dict = load_graphs(DATA_PATH + args.dname + '.dgldata')
     graph = graph[0]
     y = graph.ndata['label'].cpu().numpy()
-    if args.stat == 'wo' or args.stat == 'unclear' or args.stat == 'unclear_drop':
-        graph.ndata['aux_label'] = graph.ndata['label']
-        w = [1, 1]
-        n_classes = 2
-    else:
-        graph.ndata['aux_label'] = torch.LongTensor(get_aux_label(graph, stat=args.stat))
-        w = [1, 5, 1]
-        n_classes = 3
+    graph.ndata['aux_label'] = graph.ndata['label']
+    w = [1, 1]
+    n_classes = 2
+
     n_etypes = len(graph.etypes)
 
-    trn_idx, val_idx, tst_idx = mask_to_index(graph.ndata['trn_msk']), mask_to_index(graph.ndata['val_msk']), mask_to_index(graph.ndata['tst_msk'])
+    trn_idx, val_idx, tst_idx = mask_to_index(graph.ndata['trn_msk']), mask_to_index(
+        graph.ndata['val_msk']), mask_to_index(graph.ndata['tst_msk'])
     # 信息打印
     print("==" * 20)
-    print("数据名称",args.dname)
+    print("数据名称", args.dname)
     describe(graph)
     print("==" * 20)
     print("超参数设定：")
     print(OmegaConf.to_yaml(args))
-    print("n_etypes",n_etypes)
+    print("n_etypes", n_etypes)
     print("n_classes", n_classes)
     print("==" * 20)
 
     if args.bin_encoding:
-        feature = bin_encoding2(graph, trn_idx, n_bins=args.k, BCD=args.BCD)
+        feature = bin_encoding2(graph, trn_idx, n_bins=args.k)
         graph.ndata['feat'] = torch.FloatTensor(feature.values).contiguous()
         print("after bin_encoding：", feature.shape)
         print("==" * 20)
@@ -593,21 +591,19 @@ def run(args: DictConfig):
         print("after bin_encoding：", feature.shape)
 
     in_feats = [graph.ndata['feat'].shape[1]]
-    unclear_up   = args.z + args.z * args.unclear_ratio
-    unclear_down = args.z - args.z * args.unclear_ratio
+    unclear_up = unclear_down = args.z
     wandb.log({
-        'unclear_up':unclear_up,
-        'unclear_down':unclear_down
+        'unclear_up': unclear_up,
+        'unclear_down': unclear_down
     })
-    print({'unclear_up':unclear_up,'unclear_down':unclear_down})
+    print({'unclear_up': unclear_up, 'unclear_down': unclear_down})
     # 构建 datamodule 和 modelaccelerator
-    datamodule = DataModule(graph, args.fanouts, args.bs, n_classes)
+    datamodule = DataModule(graph, args.bs, n_classes)
     model = pl_DGA(in_feats, args.n_hidden, graph.num_nodes(), n_classes=n_classes,
-                   n_etypes=n_etypes, stat=args.stat, lr=args.lr, weight_decay=args.weight_decay, p=args.p, n_head=args.n_head,
-                   grouping=args.grouping, w=w,
-                   unclear_up=unclear_up,unclear_down=unclear_down,
+                   n_etypes=n_etypes, lr=args.lr, weight_decay=args.weight_decay, p=args.p,
+                   n_head=args.n_head, w=w,
+                   unclear_up=unclear_up, unclear_down=unclear_down,
                    trn_idx=trn_idx, val_idx=val_idx, tst_idx=tst_idx)
-
 
     # 进行训练前的设置，timer，checkpoint，early_stopping，logger
     timer = Timer()
