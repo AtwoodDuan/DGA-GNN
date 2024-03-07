@@ -2,7 +2,7 @@
 
 This is the official implementation of the following paper:
 
-> [DGA-GNN: Dynamic Grouping Aggregation GNN for Fraud Detection](https://arxiv.org/abs/2306.12251)
+> [DGA-GNN: Dynamic Grouping Aggregation GNN for Fraud Detection]()
 >
 > Mingjiang Duan, Tongya Zheng, Yang Gao, Gang Wang, Zunlei Feng, Xinyu Wang
 >
