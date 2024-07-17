@@ -75,4 +75,3 @@ If you use this package and find it useful, please cite our paper using the foll
 }
 ```
 
-[![Star History Chart](https://api.star-history.com/svg?repos=AtwoodDuan/DGA-GNN&type=Date)](https://star-history.com/#AtwoodDuan/DGA-GNN&Date)
