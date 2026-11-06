@@ -401,7 +401,7 @@ class DGA(nn.Module):
 
         attention_logit = torch.bmm(h_list_proj, x_proj)
         soft_attention = F.softmax(attention_logit, dim=1).transpose(1, 2)
-        h_list_rep = h_list.repeat([self.n_head, 1, 1])
+        h_list_rep = h_list.repeat_interleave(self.n_head, dim=0)
         weighted_features = torch.bmm(soft_attention, h_list_rep).squeeze(-2)
         h = weighted_features.view(batch_size, -1)
         o = self.final_fc_layer(h)
